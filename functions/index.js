@@ -10,10 +10,11 @@ exports.likesNotification = functions.firestore.document('spots/{spotId}').onUpd
 
     var newValue = event.data.data();
     var previousValue = event.data.previous.data();
+    var spotUid = newValue.id;
 
     const userUid = newValue.userUid;
 
-    if(previousValue.likes !== newValue.likes){
+    if(previousValue.likes.length < newValue.likes.length){
         const userLikerUid = _.last(newValue.likes);
         if(!userLikerUid){
             return console.log("We don't have a new notification");
@@ -39,16 +40,26 @@ exports.likesNotification = functions.firestore.document('spots/{spotId}').onUpd
             if (!user.token) {
                 return console.log('There are no notification token to send to.');
               }
+
+            admin.firestore().collection('notifications').add({
+                userUid: userUid,
+                userLikerUid: userLikerUid,
+                userLikerName: liker.displayName,
+                userLikePhoto: liker.photoURL,
+                spotUid: spotUid,
+                dateUpdate: new Date().getTime()
+            });
             // Notification details.
             const payload = {
                 notification: {
                 title: 'You have a new like!',
                 body: `${liker.displayName} like your spot.`,
-                sound: "default"
+                sound: "default",
+                badge: "1"
                 },
                 data:{
-                    sendername: `${liker.displayName} like your spot.`,
-                    message: "test"
+                    likerUid: liker.uid,
+                    spotUid: spotUid
                 }
             };
 

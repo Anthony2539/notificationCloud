@@ -41,8 +41,7 @@ exports.likesNotification = functions.firestore.document('spots/{spotId}').onUpd
                 return console.log('There are no notification token to send to.');
               }
 
-            admin.firestore().collection('notifications').add({
-                userUid: userUid,
+            admin.firestore().collection('/users/'+userUid+'/notifications').add({
                 userLikerUid: userLikerUid,
                 userLikerName: liker.displayName,
                 userLikePhoto: liker.photoURL,

@@ -14,6 +14,8 @@ exports.likesNotification = functions.firestore.document('spots/{spotId}').onUpd
 
     const userUid = newValue.userUid;
 
+    console.log('Previsous like length: ', previousValue.likes.length , 'New like length:', newValue.likes.length, ' For spotUid: ', spotUid);
+
     if(previousValue.likes.length < newValue.likes.length){
         const userLikerUid = _.last(newValue.likes);
         if(!userLikerUid){
@@ -90,6 +92,8 @@ exports.likesNotification = functions.firestore.document('spots/{spotId}').onUpd
             })
 
         });
+    }else{
+        return console.log('There are no notification token to send to.');
     }
     
 });

@@ -47,44 +47,47 @@ exports.likesNotification = functions.firestore.document('spots/{spotId}').onUpd
                 userLikerPhoto: liker.photoURL,
                 spotUid: spotUid,
                 dateUpdate: new Date().getTime()
-            });
-            // Notification details.
-            const payload = {
-                notification: {
-                title: 'You have a new like!',
-                body: `${liker.displayName} like your spot.`,
-                sound: "default",
-                badge: "1"
-                },
-                data:{
-                    likerUid: liker.uid,
-                    spotUid: spotUid
-                }
-            };
+            }).then(() => {
+                admin.firestore().collection('/users/'+userUid+'/notifications').get().then(function(querySnapshot) {      
+                    console.log("Notification number unread  = "+querySnapshot.size); 
+                    // Notification details.
+                    const payload = {
+                        notification: {
+                        title: 'You have a new like!',
+                        body: `${liker.displayName} like your spot.`,
+                        sound: "default",
+                        badge: querySnapshot.size.toString()
+                        },
+                        data:{
+                            likerUid: liker.uid,
+                            spotUid: spotUid
+                        }
+                    };
 
-
-            const tokens = [];
-            tokens.push(user.token);
-            // Send notifications to all tokens.
-            return admin.messaging().sendToDevice(tokens, payload).then(response => {
-              // For each message check if there was an error.
-              const tokensToRemove = [];
-              response.results.forEach((result, index) => {
-                const error = result.error;
-                if (error) {
-                  console.error('Failure sending notification to', tokens[index], error);
-                  // Cleanup the tokens who are not registered anymore.
-                  if (error.code === 'messaging/invalid-registration-token' ||
-                      error.code === 'messaging/registration-token-not-registered') {
-                    tokensToRemove.push(tokensSnapshot.ref.child(tokens[index]).remove());
-                  }
-                }else{
-                    console.log("Notification sended");
-                }
-              });
-              return Promise.all(tokensToRemove);
-            });
-
+                    const tokens = [];
+                    tokens.push(user.token);
+                    // Send notifications to all tokens.
+                    return admin.messaging().sendToDevice(tokens, payload).then(response => {
+                      // For each message check if there was an error.
+                      const tokensToRemove = [];
+                      response.results.forEach((result, index) => {
+                        const error = result.error;
+                        if (error) {
+                          console.error('Failure sending notification to', tokens[index], error);
+                          // Cleanup the tokens who are not registered anymore.
+                          if (error.code === 'messaging/invalid-registration-token' ||
+                              error.code === 'messaging/registration-token-not-registered') {
+                            tokensToRemove.push(tokensSnapshot.ref.child(tokens[index]).remove());
+                          }
+                        }else{
+                            console.log("Notification sended");
+                        }
+                      });
+                      return Promise.all(tokensToRemove);
+                    });
+    
+                });
+            })
 
         });
     }

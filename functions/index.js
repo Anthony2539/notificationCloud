@@ -44,7 +44,7 @@ exports.likesNotification = functions.firestore.document('spots/{spotId}').onUpd
             admin.firestore().collection('/users/'+userUid+'/notifications').add({
                 userLikerUid: userLikerUid,
                 userLikerName: liker.displayName,
-                userLikePhoto: liker.photoURL,
+                userLikerPhoto: liker.photoURL,
                 spotUid: spotUid,
                 dateUpdate: new Date().getTime()
             });

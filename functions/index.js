@@ -14,6 +14,10 @@ exports.likesNotification = functions.firestore.document('spots/{spotId}').onUpd
 
     const userUid = newValue.userUid;
 
+    if(!previousValue.likes){
+        previousValue.likes = []; 
+    }
+
     console.log('Previsous like length: ', previousValue.likes.length , 'New like length:', newValue.likes.length, ' For spotUid: ', spotUid);
 
     if(previousValue.likes.length < newValue.likes.length){

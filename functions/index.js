@@ -52,9 +52,11 @@ exports.likesNotification = functions.firestore.document('spots/{spotId}').onUpd
                 userLikerName: liker.displayName,
                 userLikerPhoto: liker.photoURL,
                 spotUid: spotUid,
+                read:false,
+                saw:false,
                 dateUpdate: new Date().getTime()
-            }).then(() => {
-                admin.firestore().collection('/users/'+userUid+'/notifications').get().then(function(querySnapshot) {      
+            }).then((notif) => {
+                admin.firestore().collection('/users/'+userUid+'/notifications').where("saw", "=", false).get().then(function(querySnapshot) {      
                     console.log("Notification number unread  = "+querySnapshot.size); 
                     // Notification details.
                     const payload = {
@@ -64,9 +66,10 @@ exports.likesNotification = functions.firestore.document('spots/{spotId}').onUpd
                         sound: "default",
                         badge: querySnapshot.size.toString()
                         },
-                        data:{
+                        data:{  
                             likerUid: liker.uid,
-                            spotUid: spotUid
+                            spotUid: spotUid,
+                            notificationUid: notif.id
                         }
                     };
 

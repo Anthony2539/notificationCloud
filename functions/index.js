@@ -5,6 +5,30 @@ const _ = require('lodash');
 const admin = require('firebase-admin');
 admin.initializeApp(functions.config().firebase);
 
+exports.unReadNotification = functions.firestore.document('users/{userId}/notifications/{notificationId}').onWrite((event) => {
+
+    const notificationId = event.params.notificationId; 
+    const userId = event.params.userId;
+
+    console.log("New notification("+notificationId+") for user "+userId);
+
+    const userRef = admin.firestore().collection('users').doc(userId);
+
+    // get all notification unread
+    return userRef.collection('notifications').where("read","==",false).get().then(querySnapshot => {
+        // get the total notification count
+        const notificationCount = querySnapshot.size;
+        console.log("Number of unread notification "+notificationCount);
+       
+        // data to update on the notification
+        const data = {unread:notificationCount};
+        
+        // run update
+        return userRef.update(data)
+    })
+    .catch(err => console.log(err) )
+});
+
 exports.likesNotification = functions.firestore.document('spots/{spotId}').onUpdate((event) => {
 
 

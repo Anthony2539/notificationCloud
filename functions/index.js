@@ -5,30 +5,6 @@ const _ = require('lodash');
 const admin = require('firebase-admin');
 admin.initializeApp(functions.config().firebase);
 
-exports.unReadNotification = functions.firestore.document('users/{userId}/notifications/{notificationId}').onWrite((event) => {
-
-    const notificationId = event.params.notificationId; 
-    const userId = event.params.userId;
-
-    console.log("New notification("+notificationId+") for user "+userId);
-
-    const userRef = admin.firestore().collection('users').doc(userId);
-
-    // get all notification unread
-    return userRef.collection('notifications').where("read","==",false).get().then(querySnapshot => {
-        // get the total notification count
-        const notificationCount = querySnapshot.size;
-        console.log("Number of unread notification "+notificationCount);
-       
-        // data to update on the notification
-        const data = {unread:notificationCount};
-        
-        // run update
-        return userRef.update(data)
-    })
-    .catch(err => console.log(err) )
-});
-
 exports.likesNotification = functions.firestore.document('spots/{spotId}').onUpdate((event) => {
 
 
@@ -80,15 +56,21 @@ exports.likesNotification = functions.firestore.document('spots/{spotId}').onUpd
                 saw:false,
                 dateUpdate: new Date().getTime()
             }).then((notif) => {
-                admin.firestore().collection('/users/'+userUid+'/notifications').where("saw", "=", false).get().then(function(querySnapshot) {      
-                    console.log("Notification number unread  = "+querySnapshot.size); 
+                const userRef = admin.firestore().collection('users').doc(userUid);
+                userRef.get().then(function(userSnapshot) {
+                    const user = userSnapshot.data();
+                    if(user.notificationNotSaw == undefined){
+                        user.notificationNotSaw = 0; 
+                    }  
+                    const newNotificationNotSaw = user.notificationNotSaw + 1;
+                    console.log("Number of notification: "+user.notificationNotSaw+" => "+newNotificationNotSaw);
                     // Notification details.
                     const payload = {
                         notification: {
                         title: 'You have a new like!',
                         body: `${liker.displayName} like your spot.`,
                         sound: "default",
-                        badge: querySnapshot.size.toString()
+                        badge: newNotificationNotSaw.toString()
                         },
                         data:{  
                             likerUid: liker.uid,
@@ -96,6 +78,9 @@ exports.likesNotification = functions.firestore.document('spots/{spotId}').onUpd
                             notificationUid: notif.id
                         }
                     };
+
+                    const data = {notificationNotSaw:newNotificationNotSaw};
+                    userRef.update(data);
 
                     const tokens = [];
                     tokens.push(user.token);

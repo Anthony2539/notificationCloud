@@ -5,6 +5,31 @@ const _ = require('lodash');
 const admin = require('firebase-admin');
 admin.initializeApp(functions.config().firebase);
 
+exports.commentsCount = functions.firestore.document('spots/{spotId}/comments/{commentId}').onWrite((event) => {
+    const commentId = event.params.commentId; 
+    const spotId = event.params.spotId;
+
+    console.log('New commment: ', commentId , ' for spotUid: ', spotId);
+
+    // ref to the parent document
+    const docRef = admin.firestore().collection('spots').doc(spotId);
+
+    // get all comments and aggregate
+    return docRef.collection('comments').orderBy('createdAt', 'desc')
+    .get()
+    .then(querySnapshot => {
+       // get the total comment count
+       const commentCount = querySnapshot.size
+
+       // data to update on the document
+       const data = { commentCount:commentCount }
+       
+       // run update
+       return docRef.update(data)
+    })
+    .catch(err => console.log(err) )
+});
+
 exports.likesNotification = functions.firestore.document('spots/{spotId}').onUpdate((event) => {
 
 

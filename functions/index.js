@@ -5,10 +5,9 @@ const _ = require('lodash');
 const admin = require('firebase-admin');
 admin.initializeApp(functions.config().firebase);
 
-exports.commentsCount = functions.firestore.document('spots/{spotId}/comments/{commentId}').onWrite((event) => {
-    const commentId = event.params.commentId; 
-    const spotId = event.params.spotId;
+exports.commentsNotification = functions.firestore.document('spots/{spotId}/comments/{commentId}').onCreate((event) => {
 
+    const spotId = event.params.spotId;
 
     var newValue = event.data.data();
     const userUidComment = newValue.userUid;
@@ -85,6 +84,13 @@ exports.commentsCount = functions.firestore.document('spots/{spotId}/comments/{c
 
     });
 
+});
+
+exports.commentsCount = functions.firestore.document('spots/{spotId}/comments/{commentId}').onWrite((event) => {
+    const commentId = event.params.commentId; 
+    const spotId = event.params.spotId;
+
+    const docRef = admin.firestore().collection('spots').doc(spotId);
     // get all comments and aggregate
     return docRef.collection('comments').orderBy('createdAt', 'desc')
     .get()

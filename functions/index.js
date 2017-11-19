@@ -9,10 +9,81 @@ exports.commentsCount = functions.firestore.document('spots/{spotId}/comments/{c
     const commentId = event.params.commentId; 
     const spotId = event.params.spotId;
 
-    console.log('New commment: ', commentId , ' for spotUid: ', spotId);
+
+    var newValue = event.data.data();
+    const userUidComment = newValue.userUid;
+    const userName = newValue.userName;
+    const userPicture = newValue.userPicture;
 
     // ref to the parent document
     const docRef = admin.firestore().collection('spots').doc(spotId);
+    docRef.get().then(function(querySnapshot) {
+        const spot = querySnapshot.data();
+        const userUid = spot.userUid;
+ 
+        console.log('New commment of ', userUidComment , ' for userUid: ', userUid);
+ 
+        admin.firestore().collection('/users/'+userUid+'/notifications').add({
+         userLikerUid: userUidComment,
+         userLikerName: userName,
+         userLikerPhoto: userPicture,
+         spotUid: spotId,
+         read:false,
+         type:"COMMENT",
+         dateUpdate: new Date().getTime()
+     }).then((notif) => {
+         const userRef = admin.firestore().collection('users').doc(userUid);
+         userRef.get().then(function(userSnapshot) {
+             const user = userSnapshot.data();
+             if(user.notificationNotSaw == undefined){
+                 user.notificationNotSaw = 0; 
+             }  
+             const newNotificationNotSaw = user.notificationNotSaw + 1;
+             console.log("Number of notification: "+user.notificationNotSaw+" => "+newNotificationNotSaw);
+             // Notification details.
+             const payload = {
+                 notification: {
+                 title: 'Vous avez un nouveau commentaire',
+                 body: `${userName} à commenté votre spot`,
+                 sound: "default",
+                 badge: newNotificationNotSaw.toString()
+                 },
+                 data:{  
+                     likerUid: userUidComment,
+                     spotUid: spotId,
+                     notificationUid: notif.id
+                 }
+             };
+ 
+             const data = {notificationNotSaw:newNotificationNotSaw};
+             userRef.update(data);
+ 
+             const tokens = [];
+             tokens.push(user.token);
+             // Send notifications to all tokens.
+             return admin.messaging().sendToDevice(tokens, payload).then(response => {
+               // For each message check if there was an error.
+               const tokensToRemove = [];
+               response.results.forEach((result, index) => {
+                 const error = result.error;
+                 if (error) {
+                   console.error('Failure sending notification to', tokens[index], error);
+                   // Cleanup the tokens who are not registered anymore.
+                   if (error.code === 'messaging/invalid-registration-token' ||
+                       error.code === 'messaging/registration-token-not-registered') {
+                     tokensToRemove.push(tokensSnapshot.ref.child(tokens[index]).remove());
+                   }
+                 }else{
+                     console.log("Notification sended");
+                 }
+               });
+               return Promise.all(tokensToRemove);
+             });
+ 
+         });
+     });
+
+    });
 
     // get all comments and aggregate
     return docRef.collection('comments').orderBy('createdAt', 'desc')
@@ -20,7 +91,7 @@ exports.commentsCount = functions.firestore.document('spots/{spotId}/comments/{c
     .then(querySnapshot => {
        // get the total comment count
        const commentCount = querySnapshot.size
-
+    
        // data to update on the document
        const data = { commentCount:commentCount }
        
@@ -78,7 +149,7 @@ exports.likesNotification = functions.firestore.document('spots/{spotId}').onUpd
                 userLikerPhoto: liker.photoURL,
                 spotUid: spotUid,
                 read:false,
-                saw:false,
+                type:"LIKE",
                 dateUpdate: new Date().getTime()
             }).then((notif) => {
                 const userRef = admin.firestore().collection('users').doc(userUid);
@@ -92,8 +163,8 @@ exports.likesNotification = functions.firestore.document('spots/{spotId}').onUpd
                     // Notification details.
                     const payload = {
                         notification: {
-                        title: 'You have a new like!',
-                        body: `${liker.displayName} like your spot.`,
+                        title: 'Vous avez un nouveau like',
+                        body: `${liker.displayName} à aimé votre spot`,
                         sound: "default",
                         badge: newNotificationNotSaw.toString()
                         },
@@ -130,7 +201,7 @@ exports.likesNotification = functions.firestore.document('spots/{spotId}').onUpd
                     });
     
                 });
-            })
+            });
 
         });
     }else{

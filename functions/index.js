@@ -60,24 +60,26 @@ exports.commentsNotification = functions.firestore.document('spots/{spotId}/comm
              const tokens = [];
              tokens.push(user.token);
              // Send notifications to all tokens.
-             return admin.messaging().sendToDevice(tokens, payload).then(response => {
-               // For each message check if there was an error.
-               const tokensToRemove = [];
-               response.results.forEach((result, index) => {
-                 const error = result.error;
-                 if (error) {
-                   console.error('Failure sending notification to', tokens[index], error);
-                   // Cleanup the tokens who are not registered anymore.
-                   if (error.code === 'messaging/invalid-registration-token' ||
-                       error.code === 'messaging/registration-token-not-registered') {
-                     tokensToRemove.push(tokensSnapshot.ref.child(tokens[index]).remove());
-                   }
-                 }else{
-                     console.log("Notification sended");
-                 }
-               });
-               return Promise.all(tokensToRemove);
-             });
+             if(user.receiveNotif){
+                return admin.messaging().sendToDevice(tokens, payload).then(response => {
+                // For each message check if there was an error.
+                const tokensToRemove = [];
+                response.results.forEach((result, index) => {
+                    const error = result.error;
+                    if (error) {
+                    console.error('Failure sending notification to', tokens[index], error);
+                    // Cleanup the tokens who are not registered anymore.
+                    if (error.code === 'messaging/invalid-registration-token' ||
+                        error.code === 'messaging/registration-token-not-registered') {
+                        tokensToRemove.push(tokensSnapshot.ref.child(tokens[index]).remove());
+                    }
+                    }else{
+                        console.log("Notification sended");
+                    }
+                });
+                return Promise.all(tokensToRemove);
+                });
+            }
  
          });
      });
@@ -187,24 +189,26 @@ exports.likesNotification = functions.firestore.document('spots/{spotId}').onUpd
                     const tokens = [];
                     tokens.push(user.token);
                     // Send notifications to all tokens.
-                    return admin.messaging().sendToDevice(tokens, payload).then(response => {
-                      // For each message check if there was an error.
-                      const tokensToRemove = [];
-                      response.results.forEach((result, index) => {
-                        const error = result.error;
-                        if (error) {
-                          console.error('Failure sending notification to', tokens[index], error);
-                          // Cleanup the tokens who are not registered anymore.
-                          if (error.code === 'messaging/invalid-registration-token' ||
-                              error.code === 'messaging/registration-token-not-registered') {
-                            tokensToRemove.push(tokensSnapshot.ref.child(tokens[index]).remove());
-                          }
-                        }else{
-                            console.log("Notification sended");
-                        }
-                      });
-                      return Promise.all(tokensToRemove);
-                    });
+                    if(user.receiveNotif){
+                        return admin.messaging().sendToDevice(tokens, payload).then(response => {
+                        // For each message check if there was an error.
+                        const tokensToRemove = [];
+                        response.results.forEach((result, index) => {
+                            const error = result.error;
+                            if (error) {
+                            console.error('Failure sending notification to', tokens[index], error);
+                            // Cleanup the tokens who are not registered anymore.
+                            if (error.code === 'messaging/invalid-registration-token' ||
+                                error.code === 'messaging/registration-token-not-registered') {
+                                tokensToRemove.push(tokensSnapshot.ref.child(tokens[index]).remove());
+                            }
+                            }else{
+                                console.log("Notification sended");
+                            }
+                        });
+                        return Promise.all(tokensToRemove);
+                        });
+                    }
     
                 });
             });

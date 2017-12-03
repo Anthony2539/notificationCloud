@@ -60,7 +60,7 @@ exports.commentsNotification = functions.firestore.document('spots/{spotId}/comm
              const tokens = [];
              tokens.push(user.token);
              // Send notifications to all tokens.
-             if(user.receiveNotif){
+             if(user.receiveNotif || user.receiveNotif === undefined){
                 return admin.messaging().sendToDevice(tokens, payload).then(response => {
                 // For each message check if there was an error.
                 const tokensToRemove = [];
@@ -189,7 +189,7 @@ exports.likesNotification = functions.firestore.document('spots/{spotId}').onUpd
                     const tokens = [];
                     tokens.push(user.token);
                     // Send notifications to all tokens.
-                    if(user.receiveNotif){
+                    if(user.receiveNotif || user.receiveNotif === undefined){
                         return admin.messaging().sendToDevice(tokens, payload).then(response => {
                         // For each message check if there was an error.
                         const tokensToRemove = [];
